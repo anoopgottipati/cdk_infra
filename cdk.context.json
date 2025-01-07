@@ -1,0 +1,9 @@
+{
+  "acknowledged-issue-numbers": [
+    19836
+  ],
+  "hosted-zone:account=664418960112:domainName=iotlink.click:region=us-east-1": {
+    "Id": "/hostedzone/Z055462815TC5KYXYN7J4",
+    "Name": "iotlink.click."
+  }
+}

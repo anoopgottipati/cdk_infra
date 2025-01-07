@@ -1,0 +1,35 @@
+{
+  "name": "cdk_infra",
+  "version": "0.1.0",
+  "bin": {
+    "cdk_infra": "bin/cdk_infra.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@aws-cdk/assertions": "1.203.0",
+    "@types/babel__traverse": "7.18.2",
+    "@types/jest": "^27.5.0",
+    "@types/node": "10.17.27",
+    "@types/prettier": "2.6.0",
+    "aws-cdk": "1.203.0",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.4",
+    "ts-node": "^10.8.1",
+    "typescript": "~3.9.7"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-amplify": "^1.204.0",
+    "@aws-cdk/aws-apigateway": "^1.204.0",
+    "@aws-cdk/aws-cognito": "^1.204.0",
+    "@aws-cdk/aws-dynamodb": "^1.204.0",
+    "@aws-cdk/aws-lambda": "^1.204.0",
+    "@aws-cdk/aws-route53-targets": "^1.204.0",
+    "@aws-cdk/core": "1.204.0",
+    "source-map-support": "^0.5.21"
+  }
+}
