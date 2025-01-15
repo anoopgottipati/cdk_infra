@@ -16,20 +16,38 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             ...props,
         });
 
+        // Import the userDeviceTable from CdkInfraStack
+        const userDeviceTable = dynamodb.Table.fromTableAttributes(this, 'UserDeviceTable', {
+            tableName: cdk.Fn.importValue('UserDeviceTableName'),
+            //tableArn: cdk.Fn.importValue('UserDeviceTableArn'),
+        });
+
         // DynamoDB Table
-        const dynamoTable = new dynamodb.Table(this, 'DeviveData_DynamoDBTable', {
+        const deviceTable = new dynamodb.Table(this, 'DeviveData_DynamoDBTable', {
             partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
             tableName: 'DeviceTable',
             removalPolicy: cdk.RemovalPolicy.DESTROY, 
         });
 
+
+
         // add data Lambda Function
-        const addDataLambda = new lambda.Function(this, 'AddDataToDBLambdaHandler', {
+        const addDeviceLambda = new lambda.Function(this, 'addDeviceLambda', {
             runtime: lambda.Runtime.NODEJS_16_X,
             code: lambda.Code.fromAsset('lambda'),
-            handler: 'addDataToDB.handler',
+            handler: 'addDevice.handler',
             environment: {
-                TABLE_NAME: dynamoTable.tableName,
+                TABLE_NAME: deviceTable.tableName,
+            },
+        });
+
+        // Delete data by id Lambda Function
+        const deleteDeviceLambda = new lambda.Function(this, 'deleteDeviceLambda', {
+            runtime: lambda.Runtime.NODEJS_16_X,
+            code: lambda.Code.fromAsset('lambda'),
+            handler: 'deleteDevice.handler',
+            environment: {
+                TABLE_NAME: deviceTable.tableName,
             },
         });
 
@@ -39,7 +57,7 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             code: lambda.Code.fromAsset('lambda'),
             handler: 'getAllDataFromDB.handler',
             environment: {
-                TABLE_NAME: dynamoTable.tableName,
+                TABLE_NAME: deviceTable.tableName,
             },
         });
 
@@ -49,14 +67,43 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             code: lambda.Code.fromAsset('lambda'),
             handler: 'getDatabyIdFromDB.handler',
             environment: {
-                TABLE_NAME: dynamoTable.tableName,
+                TABLE_NAME: deviceTable.tableName,
             },
         });
 
+        const addDeviceToUserLambda = new lambda.Function(this, 'addDeviceToUserLambda', {
+            runtime: lambda.Runtime.NODEJS_16_X,
+            code: lambda.Code.fromAsset('lambda'),
+            handler: 'addDeviceToUser.handler',
+            environment: {
+            USER_DEVICE_TABLE: userDeviceTable.tableName,
+            },
+        });
+
+        const removeDeviceFromUserLambda = new lambda.Function(this, 'removeDeviceFromUserLambda', {
+            runtime: lambda.Runtime.NODEJS_16_X,
+            code: lambda.Code.fromAsset('lambda'),
+            handler: 'removeDeviceFromUser.handler',
+            environment: {
+            USER_DEVICE_TABLE: userDeviceTable.tableName,
+            },
+        });
+
+
+
+
         // Grant Lambda permissions to interact with DynamoDB
-        dynamoTable.grantReadWriteData(addDataLambda);
-        dynamoTable.grantReadWriteData(getAllDataApiLambda);
-        dynamoTable.grantReadWriteData(getDataByIdApiLambda);
+        deviceTable.grantReadWriteData(addDeviceLambda);
+        deviceTable.grantReadWriteData(deleteDeviceLambda);
+        deviceTable.grantReadWriteData(getAllDataApiLambda);
+        deviceTable.grantReadWriteData(getDataByIdApiLambda);
+
+        userDeviceTable.grantReadWriteData(addDeviceToUserLambda);
+        userDeviceTable.grantReadWriteData(removeDeviceFromUserLambda);
+        userDeviceTable.grantReadData(getAllDataApiLambda);
+        userDeviceTable.grantReadData(getDataByIdApiLambda);
+
+        
 
 
         const api = new apigateway.RestApi(this, 'DeviceApiWithCors', {
@@ -69,9 +116,11 @@ export class DynamoLambdaApiStack extends cdk.Stack {
         });
 
         // Integrate Lambda with API Gateway
-        const addDataLambdaIntegration = new apigateway.LambdaIntegration(addDataLambda);
+        const addDataLambdaIntegration = new apigateway.LambdaIntegration(addDeviceLambda);
+        const deleteDataByIdLambdaIntegration = new apigateway.LambdaIntegration(addDeviceLambda);
         const getAllDataLambdaIntegration = new apigateway.LambdaIntegration(getAllDataApiLambda);
         const getDataByIdLambdaIntegration = new apigateway.LambdaIntegration(getDataByIdApiLambda);
+        
 
         const items = api.root.addResource('device');
         items.addMethod('POST', addDataLambdaIntegration);
@@ -98,6 +147,22 @@ export class DynamoLambdaApiStack extends cdk.Stack {
                 },
             ],
         });
+
+        itemsById.addMethod('DELETE', deleteDataByIdLambdaIntegration, {
+            methodResponses: [
+                {
+                    statusCode: '200',
+                    responseParameters: {
+                        'method.response.header.Access-Control-Allow-Origin': true,
+                    },
+                },
+            ],
+        });
+
+
+        const userDeviceResource = api.root.addResource('user');
+        userDeviceResource.addMethod('POST', new apigateway.LambdaIntegration(addDeviceToUserLambda));
+        userDeviceResource.addMethod('DELETE', new apigateway.LambdaIntegration(removeDeviceFromUserLambda));
 
 
 

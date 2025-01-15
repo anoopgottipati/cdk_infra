@@ -5,12 +5,41 @@ import * as cognito from "@aws-cdk/aws-cognito";
 import * as route53 from "@aws-cdk/aws-route53";
 import * as targets from '@aws-cdk/aws-route53-targets';
 import * as certificatemanager from '@aws-cdk/aws-certificatemanager';
+import * as lambda from '@aws-cdk/aws-lambda';
+import * as dynamodb from '@aws-cdk/aws-dynamodb';
 
 export class CdkInfraStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const userDeviceTable = new dynamodb.Table(this, 'UserDeviceTable', {
+        partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+        sortKey: { name: 'deviceId', type: dynamodb.AttributeType.STRING },
+        tableName: 'UserDeviceTable',
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
+    // Export the table name as an output
+    new cdk.CfnOutput(this, 'UserDeviceTableName', {
+      value: userDeviceTable.tableName,
+      exportName: 'UserDeviceTableName',
+    });
+
+    new cdk.CfnOutput(this, 'UserDeviceTableArn', {
+      value: userDeviceTable.tableArn,
+      exportName: 'UserDeviceTableArn',
+    });
+
+    const postConfirmationLambda = new lambda.Function(this, 'PostConfirmationLambda', {
+      runtime: lambda.Runtime.NODEJS_16_X,
+      code: lambda.Code.fromAsset('lambda'),
+      handler: 'postConfirmation.handler',
+      environment: {
+          USER_DEVICE_TABLE: userDeviceTable.tableName,
+      },
+    });
+
+    userDeviceTable.grantWriteData(postConfirmationLambda);
 
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, 'amplifyIOT_UserPool', {
@@ -29,6 +58,20 @@ export class CdkInfraStack extends cdk.Stack {
           mutable: false, // Email cannot be changed after sign-up
         },
       },
+      lambdaTriggers: {
+        postConfirmation: postConfirmationLambda,
+      }
+    });
+
+    
+    const adminGroup = new cognito.CfnUserPoolGroup(this, 'AdminGroup', {
+      groupName: 'admin',
+      userPoolId: userPool.userPoolId,
+    });
+
+    const regularGroup = new cognito.CfnUserPoolGroup(this, 'RegularGroup', {
+      groupName: 'regular',
+      userPoolId: userPool.userPoolId,
     });
     
     
