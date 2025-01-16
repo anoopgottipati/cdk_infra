@@ -1,32 +1,74 @@
 const AWS = require('aws-sdk');
-const dynamo = new AWS.DynamoDB.DocumentClient();
-const tableName = process.env.TABLE_NAME;
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
-
-exports.handler = async () => {
+exports.handler = async (event) => {
     try {
-        const params = {
-            TableName: tableName,
+        const userId = event.queryStringParameters.userId;
+
+        // Validate input
+        if (!userId) {
+            return {
+                statusCode: 400,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
+                body: JSON.stringify({ error: 'Missing userId parameter' }),
+            };
+        }
+
+        // Fetch device IDs from UserDeviceTable
+        const userDeviceParams = {
+            TableName: process.env.USER_DEVICE_TABLE,
+            KeyConditionExpression: 'userId = :userId',
+            ExpressionAttributeValues: {
+                ':userId': userId,
+            },
         };
 
-        const result = await dynamo.scan(params).promise();
+        const userDevices = await dynamoDb.query(userDeviceParams).promise();
+        const deviceIds = userDevices.Items.map(item => item.deviceId);
+
+        if (deviceIds.length === 0) {
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
+                body: JSON.stringify([]),
+            };
+        }
+
+        // Fetch devices from DeviceTable
+        const deviceParams = {
+            TableName: process.env.DEVICE_TABLE,
+            FilterExpression: 'id IN (:deviceIds)',
+            ExpressionAttributeValues: {
+                ':deviceIds': deviceIds,
+            },
+        };
+
+        const devices = await dynamoDb.scan(deviceParams).promise();
 
         return {
             statusCode: 200,
             headers: {
-                'Access-Control-Allow-Origin': '*', // Allow all origins
-                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
             },
-            body: JSON.stringify(result.Items),
+            body: JSON.stringify(devices.Items),
         };
     } catch (error) {
+        console.error('Error fetching data:', error);
+
         return {
             statusCode: 500,
             headers: {
-                'Access-Control-Allow-Origin': '*', // Allow all origins
-                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
             },
-            body: JSON.stringify({ message: 'Failed to get items', error: error.message }),
+            body: JSON.stringify({ error: 'Internal Server Error' }),
         };
     }
 };

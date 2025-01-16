@@ -57,7 +57,8 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             code: lambda.Code.fromAsset('lambda'),
             handler: 'getAllDataFromDB.handler',
             environment: {
-                TABLE_NAME: deviceTable.tableName,
+                DEVICE_TABLE: deviceTable.tableName,
+                USER_DEVICE_TABLE: userDeviceTable.tableName,
             },
         });
 
@@ -125,7 +126,7 @@ export class DynamoLambdaApiStack extends cdk.Stack {
         
 
         const items = api.root.addResource('device');
-        
+
         items.addMethod('POST', addDataLambdaIntegration, {
             methodResponses: [
                 {
@@ -138,6 +139,9 @@ export class DynamoLambdaApiStack extends cdk.Stack {
         });
 
         items.addMethod('GET', getAllDataLambdaIntegration, {
+            requestParameters: {
+                'method.request.querystring.userId': true, // Allow userId as a query parameter
+            },
             methodResponses: [
                 {
                     statusCode: '200',
