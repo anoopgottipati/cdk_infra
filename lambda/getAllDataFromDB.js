@@ -17,6 +17,8 @@ exports.handler = async (event) => {
             };
         }
 
+        console.log(`Fetching device IDs for userId: ${userId}`);
+
         // Fetch device IDs from UserDeviceTable
         const userDeviceParams = {
             TableName: process.env.USER_DEVICE_TABLE,
@@ -29,7 +31,10 @@ exports.handler = async (event) => {
         const userDevices = await dynamoDb.query(userDeviceParams).promise();
         const deviceIds = userDevices.Items.map(item => item.deviceId);
 
+        console.log('Device IDs fetched from UserDeviceTable:', deviceIds);
+
         if (deviceIds.length === 0) {
+            console.log('No device IDs found for the given userId.');
             return {
                 statusCode: 200,
                 headers: {
@@ -39,6 +44,8 @@ exports.handler = async (event) => {
                 body: JSON.stringify([]),
             };
         }
+
+        console.log('Fetching device details from DeviceTable for device IDs:', deviceIds);
 
         // Fetch devices from DeviceTable
         const deviceParams = {
