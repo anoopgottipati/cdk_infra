@@ -13,11 +13,10 @@ export class CdkInfraStack extends cdk.Stack {
     super(scope, id, props);
 
     const userDeviceTable = new dynamodb.Table(this, 'UserDeviceTable', {
-        partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
-        sortKey: { name: 'deviceId', type: dynamodb.AttributeType.STRING },
-        tableName: 'UserDeviceTable',
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      tableName: 'UserDeviceTable',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+  });
 
     // Export the table name as an output
     new cdk.CfnOutput(this, 'UserDeviceTableName', {

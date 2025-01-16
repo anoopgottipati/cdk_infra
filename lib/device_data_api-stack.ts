@@ -42,10 +42,10 @@ export class DynamoLambdaApiStack extends cdk.Stack {
         });
 
         // Delete data by id Lambda Function
-        const deleteDeviceLambda = new lambda.Function(this, 'deleteDeviceLambda', {
+        const deleteDeviceByIDApiLambda = new lambda.Function(this, 'deleteDeviceByIDApiLambda', {
             runtime: lambda.Runtime.NODEJS_16_X,
             code: lambda.Code.fromAsset('lambda'),
-            handler: 'deleteDevice.handler',
+            handler: 'deleteDeviceById.handler',
             environment: {
                 TABLE_NAME: deviceTable.tableName,
             },
@@ -94,7 +94,7 @@ export class DynamoLambdaApiStack extends cdk.Stack {
 
         // Grant Lambda permissions to interact with DynamoDB
         deviceTable.grantReadWriteData(addDeviceLambda);
-        deviceTable.grantReadWriteData(deleteDeviceLambda);
+        deviceTable.grantReadWriteData(deleteDeviceByIDApiLambda);
         deviceTable.grantReadWriteData(getAllDataApiLambda);
         deviceTable.grantReadWriteData(getDataByIdApiLambda);
 
@@ -117,13 +117,25 @@ export class DynamoLambdaApiStack extends cdk.Stack {
 
         // Integrate Lambda with API Gateway
         const addDataLambdaIntegration = new apigateway.LambdaIntegration(addDeviceLambda);
-        const deleteDataByIdLambdaIntegration = new apigateway.LambdaIntegration(addDeviceLambda);
+        const deleteDataByIdLambdaIntegration = new apigateway.LambdaIntegration(deleteDeviceByIDApiLambda);
         const getAllDataLambdaIntegration = new apigateway.LambdaIntegration(getAllDataApiLambda);
         const getDataByIdLambdaIntegration = new apigateway.LambdaIntegration(getDataByIdApiLambda);
+        const addDeviceToUserLambdaIntegration = new apigateway.LambdaIntegration(addDeviceToUserLambda);
+        const removeDeviceFromUserLambdaIntegration = new apigateway.LambdaIntegration(removeDeviceFromUserLambda);
         
 
         const items = api.root.addResource('device');
-        items.addMethod('POST', addDataLambdaIntegration);
+        
+        items.addMethod('POST', addDataLambdaIntegration, {
+            methodResponses: [
+                {
+                    statusCode: '200',
+                    responseParameters: {
+                        'method.response.header.Access-Control-Allow-Origin': true,
+                    },
+                },
+            ],
+        });
 
         items.addMethod('GET', getAllDataLambdaIntegration, {
             methodResponses: [
@@ -161,8 +173,26 @@ export class DynamoLambdaApiStack extends cdk.Stack {
 
 
         const userDeviceResource = api.root.addResource('user');
-        userDeviceResource.addMethod('POST', new apigateway.LambdaIntegration(addDeviceToUserLambda));
-        userDeviceResource.addMethod('DELETE', new apigateway.LambdaIntegration(removeDeviceFromUserLambda));
+        userDeviceResource.addMethod('POST', addDeviceToUserLambdaIntegration, {
+            methodResponses: [
+                {
+                    statusCode: '200',
+                    responseParameters: {
+                        'method.response.header.Access-Control-Allow-Origin': true,
+                    },
+                },
+            ],
+        });
+        userDeviceResource.addMethod('DELETE', removeDeviceFromUserLambdaIntegration, {
+            methodResponses: [
+                {
+                    statusCode: '200',
+                    responseParameters: {
+                        'method.response.header.Access-Control-Allow-Origin': true,
+                    },
+                },
+            ],
+        });
 
 
 

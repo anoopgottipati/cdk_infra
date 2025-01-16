@@ -10,6 +10,10 @@ exports.handler = async (event) => {
         if (!userId || !deviceId) {
             return {
                 statusCode: 400,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ message: "Missing required fields: userId and deviceId are mandatory." }),
             };
         }
@@ -17,27 +21,35 @@ exports.handler = async (event) => {
         // Update the user's deviceIds list
         const params = {
             TableName: tableName,
-            Key: { userId },
+            Key: { userId }, // Only userId is needed as the partition key
             UpdateExpression: 'SET #deviceIds = list_append(if_not_exists(#deviceIds, :empty_list), :deviceId)',
             ExpressionAttributeNames: {
-                '#deviceIds': 'deviceIds',
+                '#deviceIds': 'deviceIds', // Attribute name for the list of device IDs
             },
             ExpressionAttributeValues: {
-                ':deviceId': [deviceId],
-                ':empty_list': [],
+                ':deviceId': [deviceId], // Add the new deviceId to the list
+                ':empty_list': [], // Default empty list if the attribute doesn't exist
             },
-            ReturnValues: 'UPDATED_NEW',
+            ReturnValues: 'UPDATED_NEW', // Return the updated attributes
         };
 
         const result = await dynamo.update(params).promise();
 
         return {
             statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ message: 'Device added to user successfully!', updatedAttributes: result.Attributes }),
         };
     } catch (error) {
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ message: 'Failed to add device to user', error: error.message }),
         };
     }

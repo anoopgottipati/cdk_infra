@@ -10,6 +10,10 @@ exports.handler = async (event) => {
         if (!id || !deviceName || !location || !deviceType) {
             return {
                 statusCode: 400,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ message: "Missing required fields: id, deviceName, location, and deviceType are mandatory." }),
             };
         }
@@ -31,11 +35,19 @@ exports.handler = async (event) => {
 
         return {
             statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ message: 'Item added successfully!' }),
         };
     } catch (error) {
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ message: 'Failed to add item', error: error.message }),
         };
     }

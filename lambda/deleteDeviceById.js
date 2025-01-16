@@ -10,6 +10,10 @@ exports.handler = async (event) => {
         if (!id) {
             return {
                 statusCode: 400,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ message: "Missing required field: id is mandatory." }),
             };
         }
@@ -25,11 +29,19 @@ exports.handler = async (event) => {
 
         return {
             statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ message: 'Item deleted successfully!' }),
         };
     } catch (error) {
         return {
             statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ message: 'Failed to delete item', error: error.message }),
         };
     }
