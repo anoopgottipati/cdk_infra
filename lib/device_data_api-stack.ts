@@ -5,6 +5,7 @@ import * as apigateway from '@aws-cdk/aws-apigateway';
 import * as route53 from '@aws-cdk/aws-route53';
 import * as certificatemanager from '@aws-cdk/aws-certificatemanager';
 import * as route53targets from '@aws-cdk/aws-route53-targets';
+import * as cognito from "@aws-cdk/aws-cognito";
 
 export class DynamoLambdaApiStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -15,6 +16,7 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             },
             ...props,
         });
+
 
         // Import the userDeviceTable from CdkInfraStack
         const userDeviceTable = dynamodb.Table.fromTableAttributes(this, 'UserDeviceTable', {
@@ -116,6 +118,17 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             },
         });
 
+        // Import the Cognito User Pool from CdkInfraStack
+        const userPool = cognito.UserPool.fromUserPoolId(this, 'UserPool', cdk.Fn.importValue('UserPoolId'));
+
+        // Create a Cognito User Pool Authorizer
+        const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
+            cognitoUserPools: [userPool],
+            authorizerName: 'CognitoAuthorizer',
+            identitySource: 'method.request.header.Authorization', // Use the Authorization header for the token
+        });
+
+
         // Integrate Lambda with API Gateway
         const addDataLambdaIntegration = new apigateway.LambdaIntegration(addDeviceLambda);
         const deleteDataByIdLambdaIntegration = new apigateway.LambdaIntegration(deleteDeviceByIDApiLambda);
@@ -127,6 +140,7 @@ export class DynamoLambdaApiStack extends cdk.Stack {
 
         const items = api.root.addResource('device');
 
+        /*
         items.addMethod('POST', addDataLambdaIntegration, {
             methodResponses: [
                 {
@@ -135,6 +149,21 @@ export class DynamoLambdaApiStack extends cdk.Stack {
                         'method.response.header.Access-Control-Allow-Origin': true,
                     },
                 },
+            ],
+        });
+        */
+
+        // Protect the POST method for adding a device
+        items.addMethod('POST', addDataLambdaIntegration, {
+            authorizer: cognitoAuthorizer, // Add the Cognito authorizer
+            authorizationType: apigateway.AuthorizationType.COGNITO, // Specify the authorization type
+            methodResponses: [
+            {
+                statusCode: '200',
+                responseParameters: {
+                'method.response.header.Access-Control-Allow-Origin': true,
+                },
+            },
             ],
         });
 

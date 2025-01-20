@@ -90,6 +90,12 @@ export class CdkInfraStack extends cdk.Stack {
       ]
     });
 
+    // Export the User Pool ID as an output
+    new cdk.CfnOutput(this, 'UserPoolId', {
+      value: userPool.userPoolId,
+      exportName: 'UserPoolId',
+    });
+
 
     const amplifyApp = new amplify.App(this, 'cdkAmplifyIOT', {
       sourceCodeProvider: new amplify.GitHubSourceCodeProvider({
