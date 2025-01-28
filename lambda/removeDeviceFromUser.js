@@ -18,7 +18,7 @@ exports.handler = async (event) => {
             };
         }
 
-        // Fetch the current item
+        // Fetch the user's current entry
         const getParams = {
             TableName: tableName,
             Key: { userId },
@@ -39,7 +39,7 @@ exports.handler = async (event) => {
 
         const deviceIds = getResult.Item.deviceIds || [];
 
-        // Check if the deviceId exists in the list
+        // Check if the deviceId exists
         if (!deviceIds.includes(deviceId)) {
             return {
                 statusCode: 404,
@@ -51,24 +51,20 @@ exports.handler = async (event) => {
             };
         }
 
-        // Remove the deviceId from the list
-        const updatedDeviceIds = deviceIds.filter(id => id !== deviceId);
+        // Remove the deviceId from the array
+        const updatedDeviceIds = deviceIds.filter(d => d !== deviceId);
 
-        // Update the item with the modified list
+        // Update the user's entry
         const updateParams = {
             TableName: tableName,
             Key: { userId },
-            UpdateExpression: 'SET #deviceIds = :updatedDeviceIds',
-            ExpressionAttributeNames: {
-                '#deviceIds': 'deviceIds',
-            },
+            UpdateExpression: 'SET deviceIds = :updatedDeviceIds',
             ExpressionAttributeValues: {
                 ':updatedDeviceIds': updatedDeviceIds,
             },
-            ReturnValues: 'UPDATED_NEW',
         };
 
-        const updateResult = await dynamo.update(updateParams).promise();
+        await dynamo.update(updateParams).promise();
 
         return {
             statusCode: 200,
@@ -76,7 +72,7 @@ exports.handler = async (event) => {
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ message: 'Device removed from user successfully!', updatedAttributes: updateResult.Attributes }),
+            body: JSON.stringify({ message: 'Device removed from user successfully!' }),
         };
     } catch (error) {
         return {

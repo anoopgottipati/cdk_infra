@@ -1,7 +1,7 @@
 const AWS = require('aws-sdk');
 const dynamo = new AWS.DynamoDB.DocumentClient();
-const tableName = process.env.TABLE_NAME;
-
+const deviceTableName = process.env.TABLE_NAME; // Device table
+const deviceInfoTableName = process.env.DEVICE_INFO_TABLE; // Device information table
 
 exports.handler = async (event) => {
     try {
@@ -18,23 +18,54 @@ exports.handler = async (event) => {
             };
         }
 
-        const params = {
-            TableName: tableName,
+        // Fetch data from the Device Table
+        const deviceParams = {
+            TableName: deviceTableName,
             Key: { id },
         };
 
-        const result = await dynamo.get(params).promise();
+        const deviceResult = await dynamo.get(deviceParams).promise();
 
-        if (!result.Item) {
+        if (!deviceResult.Item) {
             return {
                 statusCode: 404,
                 headers: {
                     'Access-Control-Allow-Origin': '*',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message: "Item not found" }),
+                body: JSON.stringify({ message: "Device not found" }),
             };
         }
+
+        // Fetch data from the Device Information Table
+        const deviceInfoParams = {
+            TableName: deviceInfoTableName,
+            Key: { deviceId: id },
+        };
+
+        const deviceInfoResult = await dynamo.get(deviceInfoParams).promise();
+
+        if (!deviceInfoResult.Item) {
+            return {
+                statusCode: 404,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: "Device information not found" }),
+            };
+        }
+
+        // Combine data from both tables
+        const combinedData = {
+            id: deviceResult.Item.id,
+            deviceName: deviceResult.Item.deviceName,
+            location: deviceResult.Item.location,
+            deviceType: deviceResult.Item.deviceType,
+            roomTemperature: deviceInfoResult.Item.roomTemperature,
+            humidity: deviceInfoResult.Item.humidity,
+            lightStatus: deviceInfoResult.Item.lightStatus,
+        };
 
         return {
             statusCode: 200,
@@ -42,7 +73,7 @@ exports.handler = async (event) => {
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(result.Item),
+            body: JSON.stringify(combinedData),
         };
     } catch (error) {
         return {

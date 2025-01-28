@@ -31,6 +31,12 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             removalPolicy: cdk.RemovalPolicy.DESTROY, 
         });
 
+        const deviceInformationTable = new dynamodb.Table(this, 'DeviceInformationTable', {
+            partitionKey: { name: 'deviceId', type: dynamodb.AttributeType.STRING },
+            tableName: 'DeviceInformationTable',
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+        });
+
 
 
         // add data Lambda Function
@@ -40,6 +46,7 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             handler: 'addDevice.handler',
             environment: {
                 TABLE_NAME: deviceTable.tableName,
+                DEVICE_INFO_TABLE: deviceInformationTable.tableName,
             },
         });
 
@@ -50,6 +57,8 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             handler: 'deleteDeviceById.handler',
             environment: {
                 TABLE_NAME: deviceTable.tableName,
+                DEVICE_INFO_TABLE: deviceInformationTable.tableName,
+                USER_DEVICE_TABLE: userDeviceTable.tableName,
             },
         });
 
@@ -71,6 +80,7 @@ export class DynamoLambdaApiStack extends cdk.Stack {
             handler: 'getDatabyIdFromDB.handler',
             environment: {
                 TABLE_NAME: deviceTable.tableName,
+                DEVICE_INFO_TABLE: deviceInformationTable.tableName,
             },
         });
 
@@ -100,11 +110,18 @@ export class DynamoLambdaApiStack extends cdk.Stack {
         deviceTable.grantReadWriteData(deleteDeviceByIDApiLambda);
         deviceTable.grantReadWriteData(getAllDataApiLambda);
         deviceTable.grantReadWriteData(getDataByIdApiLambda);
+        deviceTable.grantReadWriteData(removeDeviceFromUserLambda);
 
         userDeviceTable.grantReadWriteData(addDeviceToUserLambda);
         userDeviceTable.grantReadWriteData(removeDeviceFromUserLambda);
         userDeviceTable.grantReadData(getAllDataApiLambda);
         userDeviceTable.grantReadData(getDataByIdApiLambda);
+        userDeviceTable.grantReadWriteData(deleteDeviceByIDApiLambda);
+
+
+        deviceInformationTable.grantReadWriteData(addDeviceLambda);
+        deviceInformationTable.grantReadWriteData(getDataByIdApiLambda);
+        deviceInformationTable.grantReadWriteData(deleteDeviceByIDApiLambda);
 
         
 

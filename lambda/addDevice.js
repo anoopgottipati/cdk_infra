@@ -1,6 +1,8 @@
+// In addDevice.js
 const AWS = require('aws-sdk');
 const dynamo = new AWS.DynamoDB.DocumentClient();
-const tableName = process.env.TABLE_NAME;
+const deviceTableName = process.env.TABLE_NAME;
+const deviceInfoTableName = process.env.DEVICE_INFO_TABLE;
 
 exports.handler = async (event) => {
     try {
@@ -18,20 +20,31 @@ exports.handler = async (event) => {
             };
         }
 
-        const params = {
-            TableName: tableName,
+        // Add to DeviceTable
+        const deviceParams = {
+            TableName: deviceTableName,
             Item: {
                 id,
                 deviceName,
                 location,
                 deviceType,
+            },
+        };
+
+        await dynamo.put(deviceParams).promise();
+
+        // Add to DeviceInformationTable
+        const deviceInfoParams = {
+            TableName: deviceInfoTableName,
+            Item: {
+                deviceId: id,
                 roomTemperature,
                 humidity,
                 lightStatus,
             },
         };
 
-        await dynamo.put(params).promise();
+        await dynamo.put(deviceInfoParams).promise();
 
         return {
             statusCode: 200,

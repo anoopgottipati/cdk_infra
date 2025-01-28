@@ -10,7 +10,6 @@ exports.handler = async (event) => {
         TableName: tableName,
         Item: {
             userId: userId,
-            deviceId: 'default', // You can customize this as needed
             email: email,
             createdAt: new Date().toISOString(),
         },
